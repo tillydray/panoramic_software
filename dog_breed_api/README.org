@@ -1,0 +1,76 @@
+* Dog Breed Viewer
+
+This Elm application allows users to browse and view images of various dog breeds and sub-breeds using the Dog CEO API.
+
+** Features
+
+- Display a list of all dog breeds and their sub-breeds.
+- View detailed information and images for each breed and sub-breed.
+- Pagination support to navigate through images (20 images per page).
+- Caching: Data fetched from the API is stored for the session to reduce redundant network calls.
+- Loading indicators to inform users when data is being fetched.
+- Gracefully handles user interactions during data loading by disabling buttons.
+
+** Requirements
+
+- Elm 0.19.1 or higher
+- A modern web browser
+
+** Usage
+
+*** Build the Application
+
+#+BEGIN_SRC bash
+elm make src/Main.elm --output=main.js
+#+END_SRC
+
+*** Serve the Application
+
+#+BEGIN_SRC bash
+elm reactor
+#+END_SRC
+
+*** View in Browser
+Open your web browser and navigate to `http://localhost:8000/index.html`.
+
+** Project Structure
+
+- `index.html`: The main HTML file that includes the compiled Elm JavaScript and mounts the Elm application.
+- `Main.elm`: The main Elm application file containing all the logic and views.
+
+** Application Overview
+
+The application interacts with the [Dog CEO API](https://dog.ceo/dog-api/documentation/) to fetch and display dog breeds and images. It consists of two main views:
+
+*** Dog Breed List
+  - Loads and displays a sorted list of dog breeds and their sub-breeds.
+  - Allows users to select a breed or sub-breed to view details.
+*** Dog Breed Details
+  - Displays images of the selected breed or sub-breed.
+  - Shows the total number of images.
+  - Supports pagination (20 images per page) with "Previous" and "Next" buttons.
+
+** Future Improvements
+
+- Error Handling: Implement comprehensive error handling for HTTP requests.
+- Routing: Introduce URL routing to bookmark and navigate directly to specific breeds or pages.
+- Styling: Enhance the UI with better styling using CSS or Elm UI libraries.
+- Search Functionality: Add a search bar to allow users to search for breeds.
+** Coding Assignment Prompt
+See https://dog.ceo/dog-api/documentation/ for general Api documentation. Write a small frontend application that
+- Can be in one of two basic user interface states:
+  - Dog Breed List
+    - Loads the list of dog breeds/sub-breeds if not already loaded dog.ceo/api/breeds/list/all
+    - Displays the list of breeds with sub-breed names displayed. The display styling need not be fancy but the list should be sorted alphabetically.
+    - The user can transition to Dog Breed Details by clicking on a specific breed in the list.
+  - Dog Breed Details
+    - The user can return to the Dog Breed List state.
+    - Loads image list from dog.ceo/api/breed/{breed}/images. A specific breed should be loaded at most once per session.
+    - Displays the total number of images for the breed.
+    - Displays 20 images at a time
+    - Allows the user to page forward and backward with Previous and Back buttons. The buttons should only be enabled when appropriate.
+- General Notes
+  - Make a call to the underlying Api for a specific Url only once per application session / instance. The same data should not be fetched twice for the same run of the application so be certain to model that.
+  - Always indicate to the user when data is loading and disallow interactions while loading.
+  - Do not worry about fancy styling.
+  - In a real application these states would be represented as routes but that complexity has been excluded here to reduce the burden of plumbing code.

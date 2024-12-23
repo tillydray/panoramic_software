@@ -1,0 +1,160 @@
+#+title: Readme
+
+* Caveats
+[[https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/][Parse, don't validate]]. It may seem nitpicky but I have found it very useful to
+distinguish between the two, as I have here.
+
+I have chosen to use =Unparsed= instead of =Editing= since it conveys more
+information. The term =Editing= brings business logic into the mix which is
+unnecessary. A brand new junior Haskeller would need to understand the
+significance of =Editing=, but =Unparsed= is more self-explanatory.
+** Validations that +cannot+ should not be represented in types
+We could push all validation into the type system using =DataKinds= and =GADTs=,
+Type-Level Literals and =KnownNat=, or =LiquidHaskell=. However the limitations
+outweigh the benefits in this case.
+
+The decision involves trade-offs between type safety, complexity, and
+development efficiency. These more advanced features can offer stronger
+compile-time assurances, but they cause increased code complexity and potential
+maintainability challenges. Smart constructors are generally preferred unless
+you truly need the benefits of the more advanced features, allowing for
+validations while adhereing to Simple Haskell as much as possible.
+
+In my experience we should consider the following when deciding between the options
+
+- Project Requirements: are compile-time guarantees critical for the app?
+- Team knowledge: is the team familiar with these more advanced Haskell features?
+- Long-term Maintenance: how important is maintainability?
+- Development Timeline: how much time do we have to use these more advanced features?
+
+I did choose to use NonEmptyText and List.NonEmpty since they provide more
+clarity without meaningfully adding to complexity, maintenance, or developer
+timeline.
+
+*** Some examples
+**** SSN
+#+begin_src haskell
+data ParsedSSN = Parsed | Invalid
+
+data SSN (v :: ParsedSSN) where
+  MkSSN :: { unSSN :: Text } -> SSN 'Parsed
+
+mkSSN :: Text -> Maybe (SSN 'Parsed
+mkSSN txt
+  | T.length digits == 9 = Just (MkSSN digits)
+  | otherwise            = Nothing
+  where
+    digits = T.filter isDigit txt
+#+end_src
+
+**** PhoneNumber
+#+begin_src haskell
+data Digit = D0 | D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8 | D9
+
+type PhoneNumber = [Digit]
+
+data USPhoneNumber where
+  MkPhoneNumber :: { unPhoneNumber :: Text } -> USPhoneNumber
+
+mkUSPhoneNumber :: Text -> Maybe USPhoneNumber
+mkUSPhoneNumber txt
+  | T.length digits == 10 = Just (MkPhoneNumber digits)
+  | otherwise             = Nothing
+  where
+    digits = T.filter isDigit txt
+#+end_src
+* Considerations
+** Briefly describe the Module organization
+I split the two concerns--=Parsed= and =UnParsed=--into two separate
+modules to more clearly convey the differences between the two modules and to
+reduce the likelihood of accidentally using one instead of the other. Since
+they are both concerned with =Person= and intended to be used externally, they
+should live in the same =Person/External= subdirectory.
+
+I have also split =Parsed= into two separate modules to more clearly communicate
+the intended usage, make hlint rules easier, and make easier use of a [[https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners][CODEOWNERS
+file]] to alert a team that changes have been made in the Internal module, which
+is probably rarely wanted, especially outside of the team.
+** Data integrity
+Separating the =Parsed= and =Unparsed= concerns, into separate modules and
+providing
+- strict hlint rules to prevent unwanted exporting from =Person.Internal.Parse=
+- documentation to explain why we want to avoid exporting certain things
+- guidelines on how to import and use both modules
+
+help prevent exposing parsers and constructors that could result in invalid data
+being used throughout the app
+** Usage ergonomics & transparecny of the API
+I have tried to create a [[https://csruiliu.github.io/blog/20201218-a-philosophy-of-software-design-II/][deep module per John Ousterhout]]. This improves usage
+and reduces cognitive overhead by ensuring "developers only need to face a small
+fraction of the overall complextiy at any given time".
+
+#+begin_quote
+The best modules are those that provide powerful functionality yet have simple interfaces.
+#+end_quote
+
+=Person.External.Parse= exports only a single thing: the means to parse an
+unparsed =Person= type. I have chosen not to expose anything from
+=Person.Internal.Parser= to the broader app, assuming that this backend service
+needs only to
+
+1. parse the incoming data
+2. store parsed data in a database
+3. return parsed data to the consumers
+4. return parsed errors to the consumers
+
+If that assumption is wrong and this backend service needs to pretty print parts
+of a Validated Person, or handle validation errors, we could
+export getters, =ParseError=, and =Parse.Person='s constituent types (though
+not constructors). But it is my experience that pretty printing should be the
+concern of the consumers of an API like this and not this API itself.
+
+Example getters
+#+begin_src haskell
+getFirstName :: Person -> FirstName
+getFirstName = firstName
+
+getLastName :: Person -> LastName
+getLastName = lastName
+
+getSsn :: Person -> SSN
+getSsn = ssn
+
+getMaritalstatus :: Person -> MaritalStatus
+getMaritalstatus = maritalStatus
+
+getUSPhoneNumber :: Person -> USPhoneNumber
+getUSPhoneNumber = phoneNumber
+#+end_src
+
+* Coding Assignment Description
+** Data Modeling and Design
+Please author the types for two representations of a Person along with the types
+of the function signatures converting one to the other.
+- Editing: Various fields may be in an incomplete or invalid state while a
+  person is in the process of being edited.
+- Validated / Fully Formed: This model will be consumed by the rest of the
+  application and should make impossible states unrepresentable, act as proof
+  that the model has passed certain validations, and assist users of the model
+  by preventing structural mistakes, enforcing semantics, and simplifying use.
+
+For this exercise we will limit the fields we model to
+- First Name
+- Last Name
+- Social Security Number
+- Marital Status
+- US Phone Number
+
+Consider data integrity, usage ergonomics, transparency of the Api, and any
+other quality measures you generally value. You should design the validated
+Person based upon your own personal experience.
+
+** Artifacts of this exercise
+- Type signatures for both the editable and the validated version of a Person.
+- Key function signatures involved in translating an editable version of a
+  Person to a validated Person. Do not worry about implementing these.
+- If there are any validations that cannot be represented in types then please
+  do include a few code comments discussing those.
+- Briefly describe the Module organization for these types and what should be
+  exposed and what should be hidden. Be ready to discuss how this impacts total
+  system maintainability
